@@ -1,0 +1,57 @@
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request));
+});
+
+async function handleRequest(request) {
+  const url = new URL(request.url);
+  const searchParams = url.searchParams;
+  const licenseKey = searchParams.get('key');
+  const sessionid = searchParams.get('sessionid');
+  const hwid = searchParams.get('hwid');
+  let name;
+  const ownerid = 'CIxFtyt6uw';
+  const model = searchParams.get('model');
+  const preExistingData = {
+    var1: 30,
+    var2: 30,
+    var3: 2,
+    var4: 2,
+    var5: 1,
+    var6: 1,
+    var7: 1
+  };
+
+  try {
+    if(model == 'private') {
+      name = 'PrivateExodus';
+    }
+    if(model == 'public') {
+      name = 'PublicExodus';
+    }
+
+    const keyAuthUrl = `https://prod.keyauth.com/api/1.2/?type=license&key=${licenseKey}&sessionid=${sessionid}&name=${name}&ownerid=${ownerid}&hwid=${hwid}`;
+    console.log('KeyAuth URL:', keyAuthUrl);
+    
+    const keyAuthResponse = await fetch(keyAuthUrl);
+    if (!keyAuthResponse.ok) {
+      throw new Error(`KeyAuth API returned ${keyAuthResponse.status} ${keyAuthResponse.statusText}`);
+    }
+    
+    const keyAuthData = await keyAuthResponse.json();
+    console.log('KeyAuth Data:', keyAuthData);
+    
+    if (keyAuthData.success) {
+      if (!hwid) {
+        return new Response('Status: HWID DOESN\'T MATCH, CONTACT THE DEV!', { status: 401 });
+      }
+      
+      const queryParams = new URLSearchParams(preExistingData).toString();
+      return new Response(queryParams, { status: 200 });
+    } else {
+      return new Response('Status: ' + keyAuthData.message + '!', { status: 401 });
+    }
+  } catch (err) {
+    console.error({sessionid}, err);
+    return new Response('Error fetching from KeyAuth', { status: 500 });
+  }
+}
